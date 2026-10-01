@@ -158,7 +158,14 @@ public class BookMenu {
 
     private void showBookReviews() {
         int bookId = MenuInput.readPositiveInt(scanner, "Book ID: ");
-        List<ReviewDTO> reviews = reviewService.getReviewsByBookId(bookId);
+        List<ReviewDTO> reviews;
+
+        try {
+            reviews = reviewService.getReviewsByBookId(bookId);
+        } catch (RuntimeException e) {
+            System.out.println(e.getMessage());
+            return;
+        }
 
         if (reviews.isEmpty()) {
             System.out.println("No reviews found for this book.");
@@ -188,11 +195,11 @@ public class BookMenu {
         System.out.print("Comment (optional): ");
         String comment = scanner.nextLine();
 
-        boolean created = reviewService.createReview(bookId, memberId, rating, comment);
-        if (created) {
+        try {
+            reviewService.createReview(bookId, memberId, rating, comment);
             System.out.println("Review created successfully.");
-        } else {
-            System.out.println("Could not create review.");
+        } catch (RuntimeException e) {
+            System.out.println("Could not create review: " + e.getMessage());
         }
     }
 

@@ -9,7 +9,6 @@ import se.josecarlos.bibliotek.data.MemberDAO;
 import se.josecarlos.bibliotek.dto.LoanDTO;
 import se.josecarlos.bibliotek.dto.LoanReturnDTO;
 import se.josecarlos.bibliotek.dto.OverdueLoanDTO;
-import se.josecarlos.bibliotek.mapper.LoanMapper;
 import se.josecarlos.bibliotek.model.Book;
 import se.josecarlos.bibliotek.model.Loan;
 import se.josecarlos.bibliotek.model.Member;
@@ -52,7 +51,7 @@ public class LoanService {
             throw new NotFoundException("Book not found.");
         }
 
-        if (!member.getStatus().equalsIgnoreCase("ACTIVE")) {
+        if (!member.getStatus().equalsIgnoreCase("active")) {
             throw new ConflictException("Member is not active.");
         }
 
@@ -92,12 +91,12 @@ public class LoanService {
     public LoanDTO getLoan(int loanId) {
         validateLoanId(loanId);
 
-        Loan loan = loanDAO.getLoanById(loanId);
+        LoanDTO loan = loanDAO.getLoanDetailsById(loanId);
         if (loan == null) {
             throw new NotFoundException("Loan not found.");
         }
 
-        return LoanMapper.toDTO(loan);
+        return loan;
     }
 
     public LoanReturnDTO returnBook(int loanId) {
@@ -125,9 +124,7 @@ public class LoanService {
     }
 
     public List<LoanDTO> getActiveLoans() {
-        return loanDAO.getActiveLoans().stream()
-                .map(LoanMapper::toDTO)
-                .toList();
+        return loanDAO.getActiveLoans();
     }
 
     public List<LoanDTO> getLoansByMemberId(int memberId) {
@@ -139,15 +136,11 @@ public class LoanService {
             throw new NotFoundException("Member not found.");
         }
 
-        return loanDAO.getLoansByMemberId(memberId).stream()
-                .map(LoanMapper::toDTO)
-                .toList();
+        return loanDAO.getLoansByMemberId(memberId);
     }
 
     public List<LoanDTO> getOverdueLoans() {
-        return loanDAO.getOverdueLoans().stream()
-                .map(LoanMapper::toDTO)
-                .toList();
+        return loanDAO.getOverdueLoans();
     }
 
     public List<OverdueLoanDTO> getOverdueLoanRegister() {

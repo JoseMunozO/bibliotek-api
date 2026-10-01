@@ -53,7 +53,7 @@ public class MemberService {
                 normalizedEmail,
                 LocalDate.now(),
                 "standard",
-                "ACTIVE"
+                "active"
         );
         int id = memberDAO.createMember(member);
         return getMember(id);
@@ -95,11 +95,11 @@ public class MemberService {
     public MemberDTO suspendMember(int memberId) {
         Member member = findMember(memberId);
 
-        if ("SUSPENDED".equalsIgnoreCase(member.getStatus())) {
+        if ("suspended".equalsIgnoreCase(member.getStatus())) {
             throw new ConflictException("Member is already suspended.");
         }
 
-        memberDAO.updateStatus(memberId, "SUSPENDED");
+        memberDAO.updateStatus(memberId, "suspended");
         return getMember(memberId);
     }
 

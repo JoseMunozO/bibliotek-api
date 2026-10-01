@@ -1,6 +1,8 @@
 package se.josecarlos.bibliotek.business;
 
 import se.josecarlos.bibliotek.data.FineDAO;
+import se.josecarlos.bibliotek.data.MemberDAO;
+import se.josecarlos.bibliotek.dto.FineDTO;
 import se.josecarlos.bibliotek.model.Fine;
 
 import java.util.List;
@@ -8,41 +10,39 @@ import java.util.List;
 public class FineService {
 
     private final FineDAO fineDAO;
+    private final MemberDAO memberDAO;
 
     public FineService() {
         this.fineDAO = new FineDAO();
+        this.memberDAO = new MemberDAO();
     }
 
-    public void createFine(int loanId, double amount) {
-        fineDAO.createFine(loanId, amount);
-    }
+    public List<FineDTO> getFinesByMemberId(int memberId) {
+        if (memberId <= 0) {
+            throw new ValidationException("Invalid member ID.");
+        }
 
-    public List<Fine> getFinesByMemberId(int memberId) {
+        if (memberDAO.getMemberById(memberId) == null) {
+            throw new NotFoundException("Member not found.");
+        }
+
         return fineDAO.getFinesByMemberId(memberId);
     }
 
-    public boolean payFine(int memberId, int fineId) {
+    public FineDTO payFine(int memberId, int fineId) {
         if (memberId <= 0 || fineId <= 0) {
-            System.out.println("Member ID and fine ID must be greater than 0.");
-            return false;
+            throw new ValidationException("Member ID and fine ID must be greater than 0.");
         }
 
         Fine fine = fineDAO.getFineByIdForMember(fineId, memberId);
-
         if (fine == null) {
-            System.out.println("Fine not found for this member.");
-            return false;
+            throw new NotFoundException("Fine not found for this member.");
         }
 
-        if ("PAID".equalsIgnoreCase(fine.getStatus())) {
-            System.out.println("Fine is already paid.");
-            return false;
+        if (FineDAO.STATUS_PAID.equalsIgnoreCase(fine.getStatus()) || !fineDAO.payFine(fineId)) {
+            throw new ConflictException("Fine is already paid.");
         }
 
-        return fineDAO.payFine(fineId);
-    }
-
-    public boolean hasFineForLoan(int loanId) {
-        return fineDAO.hasFineForLoan(loanId);
+        return fineDAO.getFineDetailsById(fineId);
     }
 }

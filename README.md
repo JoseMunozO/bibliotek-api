@@ -68,6 +68,17 @@ CORS tillåter `http://localhost:5173` (Vite) som standard; ändra med `CORS_ALL
 | POST | `/api/loans` | Låna en bok (`memberId`, `bookId`) |
 | POST | `/api/loans/{id}/return` | Lämna tillbaka; svaret innehåller `fineAmount` om boken var försenad |
 | POST | `/api/loans/{id}/extend` | Förläng lån (`extraDays`) |
+| GET | `/api/members/{id}/fines` | Böter för en medlem (med boktitel) |
+| POST | `/api/members/{id}/fines/{fineId}/pay` | Betala böter |
+| GET | `/api/books/{id}/reviews` | Recensioner för en bok |
+| POST | `/api/books/{id}/reviews` | Skapa recension (`memberId`, `rating` 1–5, `comment`) |
+| GET | `/api/members/{id}/notifications` | Notifikationer för en medlem |
+| POST | `/api/notifications` | Skicka notifikation (`memberId`, `loanId` valfritt, `type`, `message`) |
+| POST | `/api/notifications/{id}/read` | Markera notifikation som läst |
+
+Statusvärden lagras med små bokstäver, som i `bibliotek.sql`:
+medlemmar `active`/`suspended`/`expired`, böter `pending`/`paid`,
+notifikationstyper i snake_case (t.ex. `loan_reminder`, `pending_fine`).
 
 Vid fel returneras JSON i formatet `{"status": 404, "message": "Member not found."}`
 med statuskod 400 (ogiltig data), 404 (finns inte), 409 (konflikt, t.ex. e-post finns redan) eller 500 (databasfel).

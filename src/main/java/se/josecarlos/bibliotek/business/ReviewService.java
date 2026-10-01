@@ -24,46 +24,44 @@ public class ReviewService {
 
     public List<ReviewDTO> getReviewsByBookId(int bookId) {
         if (bookId <= 0) {
-            return List.of();
+            throw new ValidationException("Invalid book ID.");
+        }
+
+        if (bookDAO.getBookById(bookId) == null) {
+            throw new NotFoundException("Book not found.");
         }
 
         return reviewDAO.getReviewsByBookId(bookId);
     }
 
-    public boolean createReview(int bookId, int memberId, int rating, String comment) {
+    public ReviewDTO createReview(int bookId, int memberId, int rating, String comment) {
         String normalizedComment = comment == null ? "" : comment.trim();
 
         if (bookId <= 0 || memberId <= 0) {
-            System.out.println("Book ID and member ID must be greater than 0.");
-            return false;
+            throw new ValidationException("Book ID and member ID must be greater than 0.");
         }
 
         if (rating < 1 || rating > 5) {
-            System.out.println("Rating must be between 1 and 5.");
-            return false;
+            throw new ValidationException("Rating must be between 1 and 5.");
         }
 
         if (bookDAO.getBookById(bookId) == null) {
-            System.out.println("Book not found.");
-            return false;
+            throw new NotFoundException("Book not found.");
         }
 
         if (memberDAO.getMemberById(memberId) == null) {
-            System.out.println("Member not found.");
-            return false;
+            throw new NotFoundException("Member not found.");
         }
 
-        boolean hasCompletedLoan = loanDAO.hasReturnedLoanForBookAndMember(bookId, memberId);
-        if (!hasCompletedLoan) {
-            System.out.println("The member must have returned this book before leaving a review.");
-            return false;
+        if (!loanDAO.hasReturnedLoanForBookAndMember(bookId, memberId)) {
+            throw new ConflictException("The member must have returned this book before leaving a review.");
         }
 
         if (reviewDAO.hasMemberReviewedBook(memberId, bookId)) {
-            System.out.println("This member has already reviewed this book.");
-            return false;
+            throw new ConflictException("This member has already reviewed this book.");
         }
 
-        return reviewDAO.createReview(bookId, memberId, rating, normalizedComment);
+        int reviewId = reviewDAO.createReview(bookId, memberId, rating, normalizedComment);
+        return reviewDAO.getReviewById(reviewId);
     }
 }

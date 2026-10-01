@@ -42,7 +42,7 @@ public class BookDAO {
                 ));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseException("Could not fetch books", e);
         }
 
         return books;
@@ -60,8 +60,8 @@ public class BookDAO {
                 books.add(mapRowToBook(rs));
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch books", e);
         }
 
         return books;
@@ -103,8 +103,8 @@ public class BookDAO {
                 }
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch books", e);
         }
 
         return books;
@@ -160,8 +160,8 @@ public class BookDAO {
                     );
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch books", e);
         }
 
         return null;
@@ -196,7 +196,7 @@ public class BookDAO {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseException("Could not fetch books", e);
         }
 
         return statistics;
@@ -213,14 +213,6 @@ public class BookDAO {
         );
     }
 
-    public void decreaseAvailableCopies(int bookId) {
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            decreaseAvailableCopies(conn, bookId);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     public boolean decreaseAvailableCopies(Connection conn, int bookId) {
         String sql = """
                 UPDATE books
@@ -235,14 +227,6 @@ public class BookDAO {
 
         } catch (SQLException e) {
             throw new DatabaseException("Could not decrease available copies for book " + bookId, e);
-        }
-    }
-
-    public void increaseAvailableCopies(int bookId) {
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            increaseAvailableCopies(conn, bookId);
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 

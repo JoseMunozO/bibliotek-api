@@ -1,5 +1,6 @@
 package se.josecarlos.bibliotek.data;
 
+import se.josecarlos.bibliotek.dto.LoanDTO;
 import se.josecarlos.bibliotek.dto.OverdueLoanDTO;
 import se.josecarlos.bibliotek.model.Loan;
 
@@ -74,37 +75,58 @@ public class LoanDAO {
         }
     }
 
-    public List<Loan> getActiveLoans() {
-        List<Loan> loans = new ArrayList<>();
-        String sql = "SELECT * FROM loans WHERE return_date IS NULL";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+    private static final String LOAN_DTO_SELECT = """
+            SELECT
+                l.id, l.book_id, l.member_id, l.loan_date, l.due_date, l.return_date,
+                b.title AS book_title,
+                CONCAT(m.first_name, ' ', m.last_name) AS member_name
+            FROM loans l
+            JOIN books b ON b.id = l.book_id
+            LEFT JOIN members m ON m.id = l.member_id
+            """;
 
-            while (rs.next()) {
-                loans.add(mapRow(rs));
-            }
-
-        } catch (SQLException e) {
-            throw new DatabaseException("Could not fetch loans", e);
-        }
-
-        return loans;
+    public List<LoanDTO> getActiveLoans() {
+        return queryLoanDTOs(LOAN_DTO_SELECT + " WHERE l.return_date IS NULL ORDER BY l.due_date", null);
     }
 
-    public List<Loan> getLoansByMemberId(int memberId) {
-        List<Loan> loans = new ArrayList<>();
-        String sql = "SELECT * FROM loans WHERE member_id = ?";
+    public List<LoanDTO> getLoansByMemberId(int memberId) {
+        return queryLoanDTOs(LOAN_DTO_SELECT + " WHERE l.member_id = ? ORDER BY l.loan_date DESC", memberId);
+    }
+
+    public List<LoanDTO> getOverdueLoans() {
+        return queryLoanDTOs(LOAN_DTO_SELECT
+                + " WHERE l.return_date IS NULL AND l.due_date < CURDATE() ORDER BY l.due_date", null);
+    }
+
+    public LoanDTO getLoanDetailsById(int loanId) {
+        List<LoanDTO> loans = queryLoanDTOs(LOAN_DTO_SELECT + " WHERE l.id = ?", loanId);
+        return loans.isEmpty() ? null : loans.getFirst();
+    }
+
+    private List<LoanDTO> queryLoanDTOs(String sql, Integer param) {
+        List<LoanDTO> loans = new ArrayList<>();
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setInt(1, memberId);
+            if (param != null) {
+                stmt.setInt(1, param);
+            }
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    loans.add(mapRow(rs));
+                    Date returnDate = rs.getDate("return_date");
+                    loans.add(new LoanDTO(
+                            rs.getInt("id"),
+                            rs.getInt("book_id"),
+                            rs.getString("book_title"),
+                            rs.getInt("member_id"),
+                            rs.getString("member_name"),
+                            rs.getDate("loan_date").toLocalDate(),
+                            rs.getDate("due_date").toLocalDate(),
+                            returnDate != null ? returnDate.toLocalDate() : null
+                    ));
                 }
             }
 
@@ -239,25 +261,6 @@ public class LoanDAO {
         }
     }
 
-
-    public List<Loan> getOverdueLoans() {
-        List<Loan> loans = new ArrayList<>();
-        String sql = "SELECT * FROM loans WHERE return_date IS NULL AND due_date < CURDATE()";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                loans.add(mapRow(rs));
-            }
-
-        } catch (SQLException e) {
-            throw new DatabaseException("Could not fetch loans", e);
-        }
-
-        return loans;
-    }
 
     public List<OverdueLoanDTO> getOverdueLoanRegister() {
         List<OverdueLoanDTO> overdueLoans = new ArrayList<>();

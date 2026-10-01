@@ -3,11 +3,11 @@ package se.josecarlos.bibliotek.presentation;
 import se.josecarlos.bibliotek.business.FineService;
 import se.josecarlos.bibliotek.business.LoanService;
 import se.josecarlos.bibliotek.business.NotificationService;
+import se.josecarlos.bibliotek.dto.FineDTO;
 import se.josecarlos.bibliotek.dto.LoanDTO;
 import se.josecarlos.bibliotek.dto.LoanReturnDTO;
 import se.josecarlos.bibliotek.dto.NotificationDTO;
 import se.josecarlos.bibliotek.dto.OverdueLoanDTO;
-import se.josecarlos.bibliotek.model.Fine;
 
 import java.util.List;
 import java.util.Scanner;
@@ -110,8 +110,8 @@ public class LoanMenu {
         for (LoanDTO loan : loans) {
             System.out.println(
                     "Loan ID: " + loan.getId()
-                            + " | Book ID: " + loan.getBookId()
-                            + " | Member ID: " + loan.getMemberId()
+                            + " | Book: " + loan.getBookTitle() + " (ID " + loan.getBookId() + ")"
+                            + " | Member: " + loan.getMemberName() + " (ID " + loan.getMemberId() + ")"
                             + " | Loan date: " + loan.getLoanDate()
                             + " | Due date: " + loan.getDueDate()
             );
@@ -140,7 +140,7 @@ public class LoanMenu {
 
             System.out.println(
                     "Loan ID: " + loan.getId()
-                            + " | Book ID: " + loan.getBookId()
+                            + " | Book: " + loan.getBookTitle() + " (ID " + loan.getBookId() + ")"
                             + " | Loan date: " + loan.getLoanDate()
                             + " | Due date: " + loan.getDueDate()
                             + " | Return date: " + loan.getReturnDate()
@@ -160,8 +160,8 @@ public class LoanMenu {
         for (LoanDTO loan : loans) {
             System.out.println(
                     "Loan ID: " + loan.getId()
-                            + " | Book ID: " + loan.getBookId()
-                            + " | Member ID: " + loan.getMemberId()
+                            + " | Book: " + loan.getBookTitle() + " (ID " + loan.getBookId() + ")"
+                            + " | Member: " + loan.getMemberName() + " (ID " + loan.getMemberId() + ")"
                             + " | Due date: " + loan.getDueDate()
                             + " | Status: OVERDUE"
             );
@@ -171,17 +171,25 @@ public class LoanMenu {
     private void showFinesByMember() {
         int memberId = MenuInput.readPositiveInt(scanner, "Member ID: ");
 
-        List<Fine> fines = fineService.getFinesByMemberId(memberId);
+        List<FineDTO> fines;
+
+        try {
+            fines = fineService.getFinesByMemberId(memberId);
+        } catch (RuntimeException e) {
+            System.out.println(e.getMessage());
+            return;
+        }
 
         if (fines.isEmpty()) {
             System.out.println("No fines found for this member.");
             return;
         }
 
-        for (Fine fine : fines) {
+        for (FineDTO fine : fines) {
             System.out.println(
                     "Fine ID: " + fine.getId()
                             + " | Loan ID: " + fine.getLoanId()
+                            + " | Book: " + fine.getBookTitle()
                             + " | Amount: " + fine.getAmount()
                             + " | Issued date: " + fine.getIssuedDate()
                             + " | Status: " + fine.getStatus()
@@ -193,12 +201,11 @@ public class LoanMenu {
         int memberId = MenuInput.readPositiveInt(scanner, "Member ID: ");
         int fineId = MenuInput.readPositiveInt(scanner, "Fine ID: ");
 
-        boolean success = fineService.payFine(memberId, fineId);
-
-        if (success) {
+        try {
+            fineService.payFine(memberId, fineId);
             System.out.println("Fine paid successfully.");
-        } else {
-            System.out.println("Could not pay fine.");
+        } catch (RuntimeException e) {
+            System.out.println("Could not pay fine: " + e.getMessage());
         }
     }
 
@@ -257,18 +264,24 @@ public class LoanMenu {
         String message = MenuInput.readRequiredString(scanner, "Message: ");
 
         Integer loanId = loanIdInput <= 0 ? null : loanIdInput;
-        boolean success = notificationService.sendNotification(memberId, loanId, type, message);
-
-        if (success) {
+        try {
+            notificationService.sendNotification(memberId, loanId, type, message);
             System.out.println("Notification sent successfully.");
-        } else {
-            System.out.println("Could not send notification.");
+        } catch (RuntimeException e) {
+            System.out.println("Could not send notification: " + e.getMessage());
         }
     }
 
     private void showNotificationsByMember() {
         int memberId = MenuInput.readPositiveInt(scanner, "Member ID: ");
-        List<NotificationDTO> notifications = notificationService.getNotificationsByMemberId(memberId);
+        List<NotificationDTO> notifications;
+
+        try {
+            notifications = notificationService.getNotificationsByMemberId(memberId);
+        } catch (RuntimeException e) {
+            System.out.println(e.getMessage());
+            return;
+        }
 
         if (notifications.isEmpty()) {
             System.out.println("No notifications found for this member.");
