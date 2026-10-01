@@ -6,6 +6,7 @@ Ett bibliotekssystem i Java med:
 - JDBC
 - DTOs och mappers
 - konsolbaserade menyer
+- REST API med Spring Boot (för React-frontend)
 - MySQL
 
 ## Struktur
@@ -33,16 +34,33 @@ DB_PASSWORD=your_password_here
 
 ## Köra projektet
 
-Kompilera:
+Projektet byggs med Maven via wrappern (`./mvnw`), ingen egen Maven-installation behövs.
+
+Ladda miljövariablerna från `.env` (bash/zsh):
 
 ```bash
-javac $(find src/main/java -name '*.java')
+set -a; source .env; set +a
 ```
 
-Kör:
+### REST API (Spring Boot)
 
 ```bash
-java -cp src/main/java se.josecarlos.bibliotek.Main
+./mvnw spring-boot:run
+```
+
+API:t startar på `http://localhost:8090`. Byt port med `SERVER_PORT=xxxx`.
+CORS tillåter `http://localhost:5173` (Vite) som standard; ändra med `CORS_ALLOWED_ORIGINS`.
+
+| Metod | Endpoint | Beskrivning |
+|-------|----------|-------------|
+| GET | `/api/books` | Alla böcker (`?search=`, `?available=true`, `?sort=id\|title\|author`) |
+| GET | `/api/books/{id}` | Bokdetaljer (404 om boken inte finns) |
+| GET | `/api/books/most-borrowed` | Mest utlånade böcker (`?limit=10`) |
+
+### Konsolmenyn
+
+```bash
+./mvnw -q compile exec:java -Dexec.mainClass=se.josecarlos.bibliotek.Main
 ```
 
 ## Nuvarande funktionalitet
