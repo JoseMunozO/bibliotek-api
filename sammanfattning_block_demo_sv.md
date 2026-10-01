@@ -156,7 +156,7 @@ Rekommenderat kvar:
 
 ### 1. Startpunkt för programmet
 
-Fil: [Main.java](/Users/ozeca/Downloads/bibliotek-java-structure/src/main/java/se/josecarlos/bibliotek/Main.java)
+Fil: [Main.java](src/main/java/se/josecarlos/bibliotek/Main.java)
 
 ```java
 public class Main {
@@ -175,7 +175,7 @@ Startar programmet och lämnar över kontrollen till huvudmenyn.
 
 ### 2. Databasanslutning
 
-Fil: [DatabaseConnection.java](/Users/ozeca/Downloads/bibliotek-java-structure/src/main/java/se/josecarlos/bibliotek/data/DatabaseConnection.java)
+Fil: [DatabaseConnection.java](src/main/java/se/josecarlos/bibliotek/data/DatabaseConnection.java)
 
 ```java
 public class DatabaseConnection {
@@ -197,7 +197,7 @@ Centraliserar JDBC-anslutningen och undviker hårdkodade databasuppgifter i kode
 
 ### 3. Säker inmatning i menyer
 
-Fil: [MenuInput.java](/Users/ozeca/Downloads/bibliotek-java-structure/src/main/java/se/josecarlos/bibliotek/presentation/MenuInput.java)
+Fil: [MenuInput.java](src/main/java/se/josecarlos/bibliotek/presentation/MenuInput.java)
 
 ```java
 public static int readPositiveInt(Scanner scanner, String prompt) {
@@ -221,7 +221,7 @@ Förhindrar att applikationen kraschar på grund av ogiltig användarinmatning.
 
 ### 4. Lån med datakonsistens
 
-Fil: [LoanService.java](/Users/ozeca/Downloads/bibliotek-java-structure/src/main/java/se/josecarlos/bibliotek/business/LoanService.java)
+Fil: [LoanService.java](src/main/java/se/josecarlos/bibliotek/business/LoanService.java)
 
 ```java
 try (Connection conn = DatabaseConnection.getConnection()) {
@@ -248,7 +248,7 @@ Säkerställer att lån och lageruppdatering sker tillsammans.
 
 ### 5. Återlämning med automatisk böter
 
-Fil: [LoanService.java](/Users/ozeca/Downloads/bibliotek-java-structure/src/main/java/se/josecarlos/bibliotek/business/LoanService.java)
+Fil: [LoanService.java](src/main/java/se/josecarlos/bibliotek/business/LoanService.java)
 
 ```java
 if (today.isAfter(loan.getDueDate()) && !fineDAO.hasFineForLoan(conn, loan.getId())) {
@@ -265,7 +265,7 @@ Genererar böter automatiskt om en återlämning sker efter förfallodatum.
 
 ### 6. Medlemsprofil
 
-Fil: [MemberDAO.java](/Users/ozeca/Downloads/bibliotek-java-structure/src/main/java/se/josecarlos/bibliotek/data/MemberDAO.java)
+Fil: [MemberDAO.java](src/main/java/se/josecarlos/bibliotek/data/MemberDAO.java)
 
 Funktion:
 
@@ -275,7 +275,7 @@ Sammanfattar medlemsinformation, lån och böter i en enda fråga för att bygga
 
 ### 7. Utökade bokdetaljer
 
-Fil: [BookDAO.java](/Users/ozeca/Downloads/bibliotek-java-structure/src/main/java/se/josecarlos/bibliotek/data/BookDAO.java)
+Fil: [BookDAO.java](src/main/java/se/josecarlos/bibliotek/data/BookDAO.java)
 
 Funktion:
 
@@ -287,9 +287,9 @@ Kopplar ihop böcker, beskrivningar, författare och kategorier för att visa en
 
 Filer:
 
-- [ReviewService.java](/Users/ozeca/Downloads/bibliotek-java-structure/src/main/java/se/josecarlos/bibliotek/business/ReviewService.java)
-- [NotificationService.java](/Users/ozeca/Downloads/bibliotek-java-structure/src/main/java/se/josecarlos/bibliotek/business/NotificationService.java)
-- [BookService.java](/Users/ozeca/Downloads/bibliotek-java-structure/src/main/java/se/josecarlos/bibliotek/business/BookService.java)
+- [ReviewService.java](src/main/java/se/josecarlos/bibliotek/business/ReviewService.java)
+- [NotificationService.java](src/main/java/se/josecarlos/bibliotek/business/NotificationService.java)
+- [BookService.java](src/main/java/se/josecarlos/bibliotek/business/BookService.java)
 
 Funktion:
 

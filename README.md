@@ -1,4 +1,4 @@
-# Bibliotekssystem
+# bibliotek-api
 
 Ett bibliotekssystem i Java med:
 
@@ -18,12 +18,12 @@ Presentation -> Business -> Data -> Database
 ## Krav
 
 - Java 25
-- MySQL med schemat i [bibliotek.sql](/Users/ozeca/Downloads/bibliotek-java-structure/bibliotek.sql)
+- MySQL med schemat i [bibliotek.sql](bibliotek.sql)
 - konfigurerade miljövariabler
 
 ## Miljövariabler
 
-Använd [.env.example](/Users/ozeca/Downloads/bibliotek-java-structure/.env.example) som referens:
+Använd [.env.example](.env.example) som referens:
 
 ```env
 DB_URL=jdbc:mysql://localhost:3306/bibliotek
