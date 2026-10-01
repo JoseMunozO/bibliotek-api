@@ -162,8 +162,8 @@ public class MemberDAO {
                     m.membership_date,
                     m.membership_type,
                     m.status,
-                    COALESCE(SUM(CASE WHEN l.return_date IS NULL THEN 1 ELSE 0 END), 0) AS active_loans_count,
-                    COUNT(l.id) AS total_loans_count,
+                    COUNT(DISTINCT CASE WHEN l.return_date IS NULL THEN l.id END) AS active_loans_count,
+                    COUNT(DISTINCT l.id) AS total_loans_count,
                     COUNT(DISTINCT f.id) AS total_fines_count,
                     COALESCE(SUM(CASE WHEN f.status <> 'PAID' THEN f.amount ELSE 0 END), 0) AS unpaid_fine_amount
                 FROM members m
@@ -182,6 +182,8 @@ public class MemberDAO {
                 if (rs.next()) {
                     return new MemberProfileDTO(
                             rs.getInt("id"),
+                            rs.getString("first_name"),
+                            rs.getString("last_name"),
                             rs.getString("first_name") + " " + rs.getString("last_name"),
                             rs.getString("email"),
                             rs.getDate("membership_date").toLocalDate(),
