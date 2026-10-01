@@ -37,13 +37,13 @@ public class MemberService {
         String normalizedEmail = normalize(email).toLowerCase();
 
         if (normalizedFirstName.isEmpty() || normalizedLastName.isEmpty() || normalizedEmail.isEmpty()) {
-            throw new ValidationException("First name, last name and email are required.");
+            throw new ValidationException("El nombre, los apellidos y el email son obligatorios.");
         }
 
         validateEmail(normalizedEmail);
 
         if (memberDAO.existsByEmail(normalizedEmail)) {
-            throw new ConflictException("A member with this email already exists.");
+            throw new ConflictException("Ya existe un socio con este email.");
         }
 
         Member member = new Member(
@@ -64,7 +64,7 @@ public class MemberService {
 
         MemberProfileDTO profile = memberDAO.getMemberProfile(memberId);
         if (profile == null) {
-            throw new NotFoundException("Member not found.");
+            throw new NotFoundException("Socio no encontrado.");
         }
 
         return profile;
@@ -79,13 +79,13 @@ public class MemberService {
         findMember(memberId);
 
         if (normalizedFirstName.isEmpty() || normalizedLastName.isEmpty() || normalizedEmail.isEmpty() || normalizedMembershipType.isEmpty()) {
-            throw new ValidationException("First name, last name, email and membership type are required.");
+            throw new ValidationException("El nombre, los apellidos, el email y el tipo de socio son obligatorios.");
         }
 
         validateEmail(normalizedEmail);
 
         if (memberDAO.existsByEmailExcludingMember(normalizedEmail, memberId)) {
-            throw new ConflictException("A member with this email already exists.");
+            throw new ConflictException("Ya existe un socio con este email.");
         }
 
         memberDAO.updateMember(memberId, normalizedFirstName, normalizedLastName, normalizedEmail, normalizedMembershipType);
@@ -96,7 +96,7 @@ public class MemberService {
         Member member = findMember(memberId);
 
         if ("suspended".equalsIgnoreCase(member.getStatus())) {
-            throw new ConflictException("Member is already suspended.");
+            throw new ConflictException("El socio ya está suspendido.");
         }
 
         memberDAO.updateStatus(memberId, "suspended");
@@ -108,7 +108,7 @@ public class MemberService {
 
         Member member = memberDAO.getMemberById(memberId);
         if (member == null) {
-            throw new NotFoundException("Member not found.");
+            throw new NotFoundException("Socio no encontrado.");
         }
 
         return member;
@@ -116,13 +116,13 @@ public class MemberService {
 
     private void validateId(int memberId) {
         if (memberId <= 0) {
-            throw new ValidationException("Invalid member ID.");
+            throw new ValidationException("ID de socio no válido.");
         }
     }
 
     private void validateEmail(String email) {
         if (!EMAIL_PATTERN.matcher(email).matches()) {
-            throw new ValidationException("Invalid email format.");
+            throw new ValidationException("El formato del email no es válido.");
         }
     }
 

@@ -35,18 +35,18 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiError> handleUnreadableBody(HttpMessageNotReadableException e) {
-        return error(HttpStatus.BAD_REQUEST, "Request body is missing or invalid.");
+        return error(HttpStatus.BAD_REQUEST, "Falta el cuerpo de la petición o no es válido.");
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
-        return error(HttpStatus.BAD_REQUEST, "Invalid value for '" + e.getName() + "'.");
+        return error(HttpStatus.BAD_REQUEST, "Valor no válido para '" + e.getName() + "'.");
     }
 
     @ExceptionHandler(DatabaseException.class)
     public ResponseEntity<ApiError> handleDatabase(DatabaseException e) {
         log.error(e.getMessage(), e);
-        return error(HttpStatus.INTERNAL_SERVER_ERROR, "A database error occurred.");
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "Se ha producido un error en la base de datos.");
     }
 
     private ResponseEntity<ApiError> error(HttpStatus status, String message) {

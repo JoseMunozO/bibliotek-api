@@ -28,17 +28,17 @@ public class NotificationService {
         validateMemberExists(memberId);
 
         if (normalizedType.isEmpty() || normalizedMessage.isEmpty()) {
-            throw new ValidationException("Type and message are required.");
+            throw new ValidationException("El tipo y el mensaje son obligatorios.");
         }
 
         if (loanId != null) {
             Loan loan = loanDAO.getLoanById(loanId);
             if (loan == null) {
-                throw new NotFoundException("Loan not found.");
+                throw new NotFoundException("Préstamo no encontrado.");
             }
 
             if (loan.getMemberId() != memberId) {
-                throw new ValidationException("That loan does not belong to the selected member.");
+                throw new ValidationException("Ese préstamo no pertenece al socio seleccionado.");
             }
         }
 
@@ -53,11 +53,11 @@ public class NotificationService {
 
     public NotificationDTO markAsRead(int notificationId) {
         if (notificationId <= 0) {
-            throw new ValidationException("Invalid notification ID.");
+            throw new ValidationException("ID de notificación no válido.");
         }
 
         if (notificationDAO.getNotificationById(notificationId) == null) {
-            throw new NotFoundException("Notification not found.");
+            throw new NotFoundException("Notificación no encontrada.");
         }
 
         notificationDAO.markAsRead(notificationId);
@@ -66,11 +66,11 @@ public class NotificationService {
 
     private void validateMemberExists(int memberId) {
         if (memberId <= 0) {
-            throw new ValidationException("Member ID must be greater than 0.");
+            throw new ValidationException("El ID del socio debe ser mayor que 0.");
         }
 
         if (memberDAO.getMemberById(memberId) == null) {
-            throw new NotFoundException("Member not found.");
+            throw new NotFoundException("Socio no encontrado.");
         }
     }
 }

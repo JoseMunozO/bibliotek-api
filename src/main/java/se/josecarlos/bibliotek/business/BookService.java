@@ -58,12 +58,12 @@ public class BookService {
 
     public BookDetailsDTO getBookDetails(int id) {
         if (id <= 0) {
-            throw new ValidationException("Invalid book ID.");
+            throw new ValidationException("ID de libro no válido.");
         }
 
         BookDetailsDTO details = bookDAO.getBookDetails(id);
         if (details == null) {
-            throw new NotFoundException("Book not found.");
+            throw new NotFoundException("Libro no encontrado.");
         }
 
         return details;

@@ -38,29 +38,29 @@ public class LoanService {
 
     public LoanDTO borrowBook(int memberId, int bookId) {
         if (memberId <= 0 || bookId <= 0) {
-            throw new ValidationException("Member ID and book ID must be greater than 0.");
+            throw new ValidationException("El ID del socio y el del libro deben ser mayores que 0.");
         }
 
         Member member = memberDAO.getMemberById(memberId);
         if (member == null) {
-            throw new NotFoundException("Member not found.");
+            throw new NotFoundException("Socio no encontrado.");
         }
 
         Book book = bookDAO.getBookById(bookId);
         if (book == null) {
-            throw new NotFoundException("Book not found.");
+            throw new NotFoundException("Libro no encontrado.");
         }
 
         if (!member.getStatus().equalsIgnoreCase("active")) {
-            throw new ConflictException("Member is not active.");
+            throw new ConflictException("El socio no está activo.");
         }
 
         if (book.getAvailableCopies() <= 0) {
-            throw new ConflictException("No available copies.");
+            throw new ConflictException("No quedan ejemplares disponibles.");
         }
 
         if (loanDAO.hasActiveLoanForBookAndMember(bookId, memberId)) {
-            throw new ConflictException("This member already has an active loan for this book.");
+            throw new ConflictException("Este socio ya tiene un préstamo activo de este libro.");
         }
 
         LocalDate loanDate = LocalDate.now();
@@ -74,7 +74,7 @@ public class LoanService {
 
                 // The UPDATE only succeeds while copies remain, which guards against two simultaneous loans
                 if (!bookDAO.decreaseAvailableCopies(conn, bookId)) {
-                    throw new ConflictException("No available copies.");
+                    throw new ConflictException("No quedan ejemplares disponibles.");
                 }
 
                 conn.commit();
@@ -93,7 +93,7 @@ public class LoanService {
 
         LoanDTO loan = loanDAO.getLoanDetailsById(loanId);
         if (loan == null) {
-            throw new NotFoundException("Loan not found.");
+            throw new NotFoundException("Préstamo no encontrado.");
         }
 
         return loan;
@@ -104,7 +104,7 @@ public class LoanService {
 
         Loan loan = loanDAO.getActiveLoanById(loanId);
         if (loan == null) {
-            throw new NotFoundException("Active loan not found.");
+            throw new NotFoundException("No se ha encontrado un préstamo activo.");
         }
 
         return processReturn(loan);
@@ -112,12 +112,12 @@ public class LoanService {
 
     public LoanReturnDTO returnBookByMemberAndBook(int memberId, int bookId) {
         if (memberId <= 0 || bookId <= 0) {
-            throw new ValidationException("Member ID and book ID must be greater than 0.");
+            throw new ValidationException("El ID del socio y el del libro deben ser mayores que 0.");
         }
 
         Loan loan = loanDAO.getActiveLoanByBookAndMember(bookId, memberId);
         if (loan == null) {
-            throw new NotFoundException("Active loan not found for this member and book.");
+            throw new NotFoundException("Este socio no tiene un préstamo activo de este libro.");
         }
 
         return processReturn(loan);
@@ -129,11 +129,11 @@ public class LoanService {
 
     public List<LoanDTO> getLoansByMemberId(int memberId) {
         if (memberId <= 0) {
-            throw new ValidationException("Invalid member ID.");
+            throw new ValidationException("ID de socio no válido.");
         }
 
         if (memberDAO.getMemberById(memberId) == null) {
-            throw new NotFoundException("Member not found.");
+            throw new NotFoundException("Socio no encontrado.");
         }
 
         return loanDAO.getLoansByMemberId(memberId);
@@ -149,16 +149,16 @@ public class LoanService {
 
     public LoanDTO extendLoan(int loanId, int extraDays) {
         if (loanId <= 0 || extraDays <= 0) {
-            throw new ValidationException("Loan ID and extra days must be greater than 0.");
+            throw new ValidationException("El ID del préstamo y los días extra deben ser mayores que 0.");
         }
 
         Loan loan = loanDAO.getActiveLoanById(loanId);
         if (loan == null) {
-            throw new NotFoundException("Active loan not found.");
+            throw new NotFoundException("No se ha encontrado un préstamo activo.");
         }
 
         if (loan.getDueDate().isBefore(LocalDate.now())) {
-            throw new ConflictException("Cannot extend an overdue loan.");
+            throw new ConflictException("No se puede prorrogar un préstamo vencido.");
         }
 
         LocalDate newDueDate = loan.getDueDate().plusDays(extraDays);
@@ -175,7 +175,7 @@ public class LoanService {
 
             try {
                 if (!loanDAO.returnLoan(conn, loan.getId(), today)) {
-                    throw new ConflictException("Loan has already been returned.");
+                    throw new ConflictException("El préstamo ya se ha devuelto.");
                 }
 
                 bookDAO.increaseAvailableCopies(conn, loan.getBookId());
@@ -200,7 +200,7 @@ public class LoanService {
 
     private void validateLoanId(int loanId) {
         if (loanId <= 0) {
-            throw new ValidationException("Loan ID must be greater than 0.");
+            throw new ValidationException("El ID del préstamo debe ser mayor que 0.");
         }
     }
 }

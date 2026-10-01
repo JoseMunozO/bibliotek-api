@@ -24,11 +24,11 @@ public class ReviewService {
 
     public List<ReviewDTO> getReviewsByBookId(int bookId) {
         if (bookId <= 0) {
-            throw new ValidationException("Invalid book ID.");
+            throw new ValidationException("ID de libro no válido.");
         }
 
         if (bookDAO.getBookById(bookId) == null) {
-            throw new NotFoundException("Book not found.");
+            throw new NotFoundException("Libro no encontrado.");
         }
 
         return reviewDAO.getReviewsByBookId(bookId);
@@ -38,27 +38,27 @@ public class ReviewService {
         String normalizedComment = comment == null ? "" : comment.trim();
 
         if (bookId <= 0 || memberId <= 0) {
-            throw new ValidationException("Book ID and member ID must be greater than 0.");
+            throw new ValidationException("El ID del libro y el del socio deben ser mayores que 0.");
         }
 
         if (rating < 1 || rating > 5) {
-            throw new ValidationException("Rating must be between 1 and 5.");
+            throw new ValidationException("La puntuación debe estar entre 1 y 5.");
         }
 
         if (bookDAO.getBookById(bookId) == null) {
-            throw new NotFoundException("Book not found.");
+            throw new NotFoundException("Libro no encontrado.");
         }
 
         if (memberDAO.getMemberById(memberId) == null) {
-            throw new NotFoundException("Member not found.");
+            throw new NotFoundException("Socio no encontrado.");
         }
 
         if (!loanDAO.hasReturnedLoanForBookAndMember(bookId, memberId)) {
-            throw new ConflictException("The member must have returned this book before leaving a review.");
+            throw new ConflictException("El socio debe haber devuelto este libro antes de reseñarlo.");
         }
 
         if (reviewDAO.hasMemberReviewedBook(memberId, bookId)) {
-            throw new ConflictException("This member has already reviewed this book.");
+            throw new ConflictException("Este socio ya ha reseñado este libro.");
         }
 
         int reviewId = reviewDAO.createReview(bookId, memberId, rating, normalizedComment);
