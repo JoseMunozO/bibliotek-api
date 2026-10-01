@@ -27,24 +27,23 @@ public class MemberService {
                 .toList();
     }
 
-    public boolean registerMember(String firstName, String lastName, String email) {
-        String normalizedFirstName = firstName == null ? "" : firstName.trim();
-        String normalizedLastName = lastName == null ? "" : lastName.trim();
-        String normalizedEmail = email == null ? "" : email.trim().toLowerCase();
+    public MemberDTO getMember(int memberId) {
+        return MemberMapper.toDTO(findMember(memberId));
+    }
+
+    public MemberDTO registerMember(String firstName, String lastName, String email) {
+        String normalizedFirstName = normalize(firstName);
+        String normalizedLastName = normalize(lastName);
+        String normalizedEmail = normalize(email).toLowerCase();
 
         if (normalizedFirstName.isEmpty() || normalizedLastName.isEmpty() || normalizedEmail.isEmpty()) {
-            System.out.println("First name, last name and email are required.");
-            return false;
+            throw new ValidationException("First name, last name and email are required.");
         }
 
-        if (!EMAIL_PATTERN.matcher(normalizedEmail).matches()) {
-            System.out.println("Invalid email format.");
-            return false;
-        }
+        validateEmail(normalizedEmail);
 
         if (memberDAO.existsByEmail(normalizedEmail)) {
-            System.out.println("A member with this email already exists.");
-            return false;
+            throw new ConflictException("A member with this email already exists.");
         }
 
         Member member = new Member(
@@ -56,63 +55,78 @@ public class MemberService {
                 "standard",
                 "ACTIVE"
         );
-        return memberDAO.createMember(member);
+        int id = memberDAO.createMember(member);
+        return getMember(id);
     }
 
     public MemberProfileDTO getMemberProfile(int memberId) {
-        if (memberId <= 0) {
-            return null;
+        validateId(memberId);
+
+        MemberProfileDTO profile = memberDAO.getMemberProfile(memberId);
+        if (profile == null) {
+            throw new NotFoundException("Member not found.");
         }
 
-        return memberDAO.getMemberProfile(memberId);
+        return profile;
     }
 
-    public boolean updateMember(int memberId, String firstName, String lastName, String email, String membershipType) {
-        String normalizedFirstName = firstName == null ? "" : firstName.trim();
-        String normalizedLastName = lastName == null ? "" : lastName.trim();
-        String normalizedEmail = email == null ? "" : email.trim().toLowerCase();
-        String normalizedMembershipType = membershipType == null ? "" : membershipType.trim().toLowerCase();
+    public MemberDTO updateMember(int memberId, String firstName, String lastName, String email, String membershipType) {
+        String normalizedFirstName = normalize(firstName);
+        String normalizedLastName = normalize(lastName);
+        String normalizedEmail = normalize(email).toLowerCase();
+        String normalizedMembershipType = normalize(membershipType).toLowerCase();
 
-        if (memberId <= 0) {
-            System.out.println("Invalid member ID.");
-            return false;
-        }
+        findMember(memberId);
 
         if (normalizedFirstName.isEmpty() || normalizedLastName.isEmpty() || normalizedEmail.isEmpty() || normalizedMembershipType.isEmpty()) {
-            System.out.println("First name, last name, email and membership type are required.");
-            return false;
+            throw new ValidationException("First name, last name, email and membership type are required.");
         }
 
-        if (!EMAIL_PATTERN.matcher(normalizedEmail).matches()) {
-            System.out.println("Invalid email format.");
-            return false;
-        }
+        validateEmail(normalizedEmail);
 
         if (memberDAO.existsByEmailExcludingMember(normalizedEmail, memberId)) {
-            System.out.println("A member with this email already exists.");
-            return false;
+            throw new ConflictException("A member with this email already exists.");
         }
 
-        return memberDAO.updateMember(memberId, normalizedFirstName, normalizedLastName, normalizedEmail, normalizedMembershipType);
+        memberDAO.updateMember(memberId, normalizedFirstName, normalizedLastName, normalizedEmail, normalizedMembershipType);
+        return getMember(memberId);
     }
 
-    public boolean suspendMember(int memberId) {
-        if (memberId <= 0) {
-            System.out.println("Invalid member ID.");
-            return false;
+    public MemberDTO suspendMember(int memberId) {
+        Member member = findMember(memberId);
+
+        if ("SUSPENDED".equalsIgnoreCase(member.getStatus())) {
+            throw new ConflictException("Member is already suspended.");
         }
+
+        memberDAO.updateStatus(memberId, "SUSPENDED");
+        return getMember(memberId);
+    }
+
+    private Member findMember(int memberId) {
+        validateId(memberId);
 
         Member member = memberDAO.getMemberById(memberId);
         if (member == null) {
-            System.out.println("Member not found.");
-            return false;
+            throw new NotFoundException("Member not found.");
         }
 
-        if ("SUSPENDED".equalsIgnoreCase(member.getStatus())) {
-            System.out.println("Member is already suspended.");
-            return false;
-        }
+        return member;
+    }
 
-        return memberDAO.updateStatus(memberId, "SUSPENDED");
+    private void validateId(int memberId) {
+        if (memberId <= 0) {
+            throw new ValidationException("Invalid member ID.");
+        }
+    }
+
+    private void validateEmail(String email) {
+        if (!EMAIL_PATTERN.matcher(email).matches()) {
+            throw new ValidationException("Invalid email format.");
+        }
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim();
     }
 }

@@ -8,6 +8,7 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,8 +27,8 @@ public class MemberDAO {
                 members.add(mapRow(rs));
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch members", e);
         }
 
         return members;
@@ -47,21 +48,21 @@ public class MemberDAO {
                 }
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch member " + id, e);
         }
 
         return null;
     }
 
-    public boolean createMember(Member member) {
+    public int createMember(Member member) {
         String sql = """
                 INSERT INTO members (first_name, last_name, email, membership_date, membership_type, status)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setString(1, member.getFirstName());
             stmt.setString(2, member.getLastName());
@@ -69,14 +70,16 @@ public class MemberDAO {
             stmt.setDate(4, Date.valueOf(member.getMembershipDate()));
             stmt.setString(5, member.getMembershipType());
             stmt.setString(6, member.getStatus());
+            stmt.executeUpdate();
 
-            return stmt.executeUpdate() > 0;
+            try (ResultSet keys = stmt.getGeneratedKeys()) {
+                keys.next();
+                return keys.getInt(1);
+            }
 
         } catch (SQLException e) {
-            System.out.println("Could not create member: " + e.getMessage());
+            throw new DatabaseException("Could not create member", e);
         }
-
-        return false;
     }
 
     public boolean existsByEmail(String email) {
@@ -92,10 +95,8 @@ public class MemberDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseException("Could not check member email", e);
         }
-
-        return false;
     }
 
     public boolean existsByEmailExcludingMember(String email, int memberId) {
@@ -112,13 +113,11 @@ public class MemberDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseException("Could not check member email", e);
         }
-
-        return false;
     }
 
-    public boolean updateMember(int memberId, String firstName, String lastName, String email, String membershipType) {
+    public void updateMember(int memberId, String firstName, String lastName, String email, String membershipType) {
         String sql = """
                 UPDATE members
                 SET first_name = ?, last_name = ?, email = ?, membership_type = ?
@@ -133,16 +132,13 @@ public class MemberDAO {
             stmt.setString(3, email);
             stmt.setString(4, membershipType);
             stmt.setInt(5, memberId);
-
-            return stmt.executeUpdate() > 0;
+            stmt.executeUpdate();
         } catch (SQLException e) {
-            System.out.println("Could not update member: " + e.getMessage());
+            throw new DatabaseException("Could not update member " + memberId, e);
         }
-
-        return false;
     }
 
-    public boolean updateStatus(int memberId, String status) {
+    public void updateStatus(int memberId, String status) {
         String sql = "UPDATE members SET status = ? WHERE id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -150,12 +146,10 @@ public class MemberDAO {
 
             stmt.setString(1, status);
             stmt.setInt(2, memberId);
-            return stmt.executeUpdate() > 0;
+            stmt.executeUpdate();
         } catch (SQLException e) {
-            System.out.println("Could not update member status: " + e.getMessage());
+            throw new DatabaseException("Could not update status for member " + memberId, e);
         }
-
-        return false;
     }
 
     public MemberProfileDTO getMemberProfile(int memberId) {
@@ -201,13 +195,13 @@ public class MemberDAO {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseException("Could not fetch profile for member " + memberId, e);
         }
 
         return null;
     }
 
-    private Member mapRow(ResultSet rs) throws Exception {
+    private Member mapRow(ResultSet rs) throws SQLException {
         return new Member(
                 rs.getInt("id"),
                 rs.getString("first_name"),

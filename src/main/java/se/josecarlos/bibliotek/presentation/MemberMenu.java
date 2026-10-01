@@ -87,20 +87,22 @@ public class MemberMenu {
 
         String email = MenuInput.readRequiredString(scanner, "Email: ");
 
-        boolean created = memberService.registerMember(firstName, lastName, email);
-        if (created) {
-            System.out.println("Member created!");
-        } else {
-            System.out.println("Could not create member.");
+        try {
+            MemberDTO created = memberService.registerMember(firstName, lastName, email);
+            System.out.println("Member created with ID " + created.getId() + "!");
+        } catch (RuntimeException e) {
+            System.out.println("Could not create member: " + e.getMessage());
         }
     }
 
     private void showMemberProfile() {
         int memberId = MenuInput.readPositiveInt(scanner, "Member ID: ");
-        MemberProfileDTO profile = memberService.getMemberProfile(memberId);
+        MemberProfileDTO profile;
 
-        if (profile == null) {
-            System.out.println("Member not found.");
+        try {
+            profile = memberService.getMemberProfile(memberId);
+        } catch (RuntimeException e) {
+            System.out.println(e.getMessage());
             return;
         }
 
@@ -124,22 +126,21 @@ public class MemberMenu {
         String email = MenuInput.readRequiredString(scanner, "Email: ");
         String membershipType = MenuInput.readRequiredString(scanner, "Membership type: ");
 
-        boolean updated = memberService.updateMember(memberId, firstName, lastName, email, membershipType);
-        if (updated) {
+        try {
+            memberService.updateMember(memberId, firstName, lastName, email, membershipType);
             System.out.println("Member updated successfully.");
-        } else {
-            System.out.println("Could not update member.");
+        } catch (RuntimeException e) {
+            System.out.println("Could not update member: " + e.getMessage());
         }
     }
 
     private void suspendMember() {
         int memberId = MenuInput.readPositiveInt(scanner, "Member ID: ");
-        boolean suspended = memberService.suspendMember(memberId);
-
-        if (suspended) {
+        try {
+            memberService.suspendMember(memberId);
             System.out.println("Member suspended successfully.");
-        } else {
-            System.out.println("Could not suspend member.");
+        } catch (RuntimeException e) {
+            System.out.println("Could not suspend member: " + e.getMessage());
         }
     }
 }
