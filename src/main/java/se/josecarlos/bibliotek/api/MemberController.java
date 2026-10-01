@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import se.josecarlos.bibliotek.business.LoanService;
 import se.josecarlos.bibliotek.business.MemberService;
+import se.josecarlos.bibliotek.dto.LoanDTO;
 import se.josecarlos.bibliotek.dto.MemberDTO;
 import se.josecarlos.bibliotek.dto.MemberProfileDTO;
 
@@ -20,9 +22,11 @@ import java.util.List;
 public class MemberController {
 
     private final MemberService memberService;
+    private final LoanService loanService;
 
-    public MemberController(MemberService memberService) {
+    public MemberController(MemberService memberService, LoanService loanService) {
         this.memberService = memberService;
+        this.loanService = loanService;
     }
 
     @GetMapping
@@ -33,6 +37,11 @@ public class MemberController {
     @GetMapping("/{id}")
     public MemberProfileDTO getMemberProfile(@PathVariable int id) {
         return memberService.getMemberProfile(id);
+    }
+
+    @GetMapping("/{id}/loans")
+    public List<LoanDTO> getMemberLoans(@PathVariable int id) {
+        return loanService.getLoansByMemberId(id);
     }
 
     @PostMapping

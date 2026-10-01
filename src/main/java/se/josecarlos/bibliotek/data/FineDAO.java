@@ -36,10 +36,8 @@ public class FineDAO {
             return stmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseException("Could not create fine for loan " + loanId, e);
         }
-
-        return false;
     }
 
     public List<Fine> getFinesByMemberId(int memberId) {
@@ -161,10 +159,8 @@ public class FineDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseException("Could not check fines for loan " + loanId, e);
         }
-
-        return false;
     }
 
     private Fine mapRow(ResultSet rs) throws SQLException {

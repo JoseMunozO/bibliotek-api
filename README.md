@@ -61,6 +61,13 @@ CORS tillåter `http://localhost:5173` (Vite) som standard; ändra med `CORS_ALL
 | POST | `/api/members` | Registrera medlem (`firstName`, `lastName`, `email`) |
 | PUT | `/api/members/{id}` | Uppdatera medlem (`firstName`, `lastName`, `email`, `membershipType`) |
 | POST | `/api/members/{id}/suspend` | Stäng av medlem |
+| GET | `/api/members/{id}/loans` | Alla lån för en medlem |
+| GET | `/api/loans` | Aktiva lån |
+| GET | `/api/loans/overdue` | Register över förfallna lån (med boktitel och medlem) |
+| GET | `/api/loans/{id}` | Ett lån |
+| POST | `/api/loans` | Låna en bok (`memberId`, `bookId`) |
+| POST | `/api/loans/{id}/return` | Lämna tillbaka; svaret innehåller `fineAmount` om boken var försenad |
+| POST | `/api/loans/{id}/extend` | Förläng lån (`extraDays`) |
 
 Vid fel returneras JSON i formatet `{"status": 404, "message": "Member not found."}`
 med statuskod 400 (ogiltig data), 404 (finns inte), 409 (konflikt, t.ex. e-post finns redan) eller 500 (databasfel).

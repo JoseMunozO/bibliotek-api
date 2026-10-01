@@ -7,6 +7,8 @@ import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,38 +18,40 @@ public class LoanDAO {
     public void createLoan(int bookId, int memberId, LocalDate loanDate, LocalDate dueDate) {
         try (Connection conn = DatabaseConnection.getConnection()) {
             createLoan(conn, bookId, memberId, loanDate, dueDate);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not create loan", e);
         }
     }
 
-    public boolean createLoan(Connection conn, int bookId, int memberId, LocalDate loanDate, LocalDate dueDate) {
+    public int createLoan(Connection conn, int bookId, int memberId, LocalDate loanDate, LocalDate dueDate) {
         String sql = """
                 INSERT INTO loans (book_id, member_id, loan_date, due_date)
                 VALUES (?, ?, ?, ?)
                 """;
 
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setInt(1, bookId);
             stmt.setInt(2, memberId);
             stmt.setDate(3, Date.valueOf(loanDate));
             stmt.setDate(4, Date.valueOf(dueDate));
+            stmt.executeUpdate();
 
-            return stmt.executeUpdate() > 0;
+            try (ResultSet keys = stmt.getGeneratedKeys()) {
+                keys.next();
+                return keys.getInt(1);
+            }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not create loan", e);
         }
-
-        return false;
     }
 
     public void returnLoan(int loanId, LocalDate returnDate) {
         try (Connection conn = DatabaseConnection.getConnection()) {
             returnLoan(conn, loanId, returnDate);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not return loan " + loanId, e);
         }
     }
 
@@ -65,11 +69,9 @@ public class LoanDAO {
 
             return stmt.executeUpdate() > 0;
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not return loan " + loanId, e);
         }
-
-        return false;
     }
 
     public List<Loan> getActiveLoans() {
@@ -84,8 +86,8 @@ public class LoanDAO {
                 loans.add(mapRow(rs));
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch loans", e);
         }
 
         return loans;
@@ -106,8 +108,8 @@ public class LoanDAO {
                 }
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch loans", e);
         }
 
         return loans;
@@ -127,8 +129,8 @@ public class LoanDAO {
                 }
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch loans", e);
         }
 
         return null;
@@ -148,14 +150,14 @@ public class LoanDAO {
                 }
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch loans", e);
         }
 
         return null;
     }
 
-    private Loan mapRow(ResultSet rs) throws Exception {
+    private Loan mapRow(ResultSet rs) throws SQLException {
         Date returnDateSql = rs.getDate("return_date");
 
         return new Loan(
@@ -186,8 +188,8 @@ public class LoanDAO {
                 }
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch loans", e);
         }
 
         return null;
@@ -214,11 +216,9 @@ public class LoanDAO {
                 return rs.next();
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not check returned loans", e);
         }
-
-        return false;
     }
 
     public boolean extendLoan(int loanId, LocalDate newDueDate) {
@@ -234,11 +234,9 @@ public class LoanDAO {
             stmt.setDate(1, Date.valueOf(newDueDate));
             stmt.setInt(2, loanId);
             return stmt.executeUpdate() > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not extend loan " + loanId, e);
         }
-
-        return false;
     }
 
 
@@ -254,8 +252,8 @@ public class LoanDAO {
                 loans.add(mapRow(rs));
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch loans", e);
         }
 
         return loans;
@@ -294,8 +292,8 @@ public class LoanDAO {
                         rs.getDate("due_date").toLocalDate()
                 ));
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch loans", e);
         }
 
         return overdueLoans;

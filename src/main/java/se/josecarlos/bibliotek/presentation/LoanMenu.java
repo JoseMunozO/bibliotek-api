@@ -4,6 +4,7 @@ import se.josecarlos.bibliotek.business.FineService;
 import se.josecarlos.bibliotek.business.LoanService;
 import se.josecarlos.bibliotek.business.NotificationService;
 import se.josecarlos.bibliotek.dto.LoanDTO;
+import se.josecarlos.bibliotek.dto.LoanReturnDTO;
 import se.josecarlos.bibliotek.dto.NotificationDTO;
 import se.josecarlos.bibliotek.dto.OverdueLoanDTO;
 import se.josecarlos.bibliotek.model.Fine;
@@ -89,12 +90,11 @@ public class LoanMenu {
         int memberId = MenuInput.readPositiveInt(scanner, "Member ID: ");
         int bookId = MenuInput.readPositiveInt(scanner, "Book ID: ");
 
-        boolean success = loanService.borrowBook(memberId, bookId);
-
-        if (success) {
-            System.out.println("Book borrowed successfully.");
-        } else {
-            System.out.println("Could not borrow book.");
+        try {
+            LoanDTO loan = loanService.borrowBook(memberId, bookId);
+            System.out.println("Book borrowed successfully. Loan ID: " + loan.getId() + ", due date: " + loan.getDueDate());
+        } catch (RuntimeException e) {
+            System.out.println("Could not borrow book: " + e.getMessage());
         }
     }
 
@@ -121,7 +121,14 @@ public class LoanMenu {
     private void showLoansByMember() {
         int memberId = MenuInput.readPositiveInt(scanner, "Member ID: ");
 
-        List<LoanDTO> loans = loanService.getLoansByMemberId(memberId);
+        List<LoanDTO> loans;
+
+        try {
+            loans = loanService.getLoansByMemberId(memberId);
+        } catch (RuntimeException e) {
+            System.out.println(e.getMessage());
+            return;
+        }
 
         if (loans.isEmpty()) {
             System.out.println("No loans found for this member.");
@@ -199,11 +206,14 @@ public class LoanMenu {
         int memberId = MenuInput.readPositiveInt(scanner, "Member ID: ");
         int bookId = MenuInput.readPositiveInt(scanner, "Book ID: ");
 
-        boolean success = loanService.returnBookByMemberAndBook(memberId, bookId);
-        if (success) {
+        try {
+            LoanReturnDTO result = loanService.returnBookByMemberAndBook(memberId, bookId);
             System.out.println("Book returned successfully.");
-        } else {
-            System.out.println("Could not return book. Check if the member has an active loan for this book.");
+            if (result.getFineAmount() > 0) {
+                System.out.println("The book was returned late. Fine: " + result.getFineAmount());
+            }
+        } catch (RuntimeException e) {
+            System.out.println("Could not return book: " + e.getMessage());
         }
     }
 
@@ -211,11 +221,11 @@ public class LoanMenu {
         int loanId = MenuInput.readPositiveInt(scanner, "Loan ID: ");
         int extraDays = MenuInput.readPositiveInt(scanner, "Extra days: ");
 
-        boolean success = loanService.extendLoan(loanId, extraDays);
-        if (success) {
-            System.out.println("Loan extended successfully.");
-        } else {
-            System.out.println("Could not extend loan.");
+        try {
+            LoanDTO loan = loanService.extendLoan(loanId, extraDays);
+            System.out.println("Loan extended successfully. New due date: " + loan.getDueDate());
+        } catch (RuntimeException e) {
+            System.out.println("Could not extend loan: " + e.getMessage());
         }
     }
 
