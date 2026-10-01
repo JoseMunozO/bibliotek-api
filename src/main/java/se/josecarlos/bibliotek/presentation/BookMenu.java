@@ -108,10 +108,12 @@ public class BookMenu {
     private void showBookDetails() {
         int id = MenuInput.readPositiveInt(scanner, "Enter book id: ");
 
-        BookDetailsDTO book = bookService.getBookDetails(id);
+        BookDetailsDTO book;
 
-        if (book == null) {
-            System.out.println("Book not found.");
+        try {
+            book = bookService.getBookDetails(id);
+        } catch (RuntimeException e) {
+            System.out.println(e.getMessage());
             return;
         }
 
