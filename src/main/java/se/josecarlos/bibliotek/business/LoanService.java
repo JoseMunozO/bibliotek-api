@@ -2,203 +2,205 @@ package se.josecarlos.bibliotek.business;
 
 import se.josecarlos.bibliotek.data.BookDAO;
 import se.josecarlos.bibliotek.data.DatabaseConnection;
+import se.josecarlos.bibliotek.data.DatabaseException;
 import se.josecarlos.bibliotek.data.FineDAO;
 import se.josecarlos.bibliotek.data.LoanDAO;
 import se.josecarlos.bibliotek.data.MemberDAO;
 import se.josecarlos.bibliotek.dto.LoanDTO;
+import se.josecarlos.bibliotek.dto.LoanReturnDTO;
 import se.josecarlos.bibliotek.dto.OverdueLoanDTO;
-import se.josecarlos.bibliotek.mapper.LoanMapper;
 import se.josecarlos.bibliotek.model.Book;
 import se.josecarlos.bibliotek.model.Loan;
 import se.josecarlos.bibliotek.model.Member;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.sql.Connection;
 import java.util.List;
 
 public class LoanService {
 
+    private static final int LOAN_PERIOD_DAYS = 14;
+    private static final double FINE_PER_LATE_DAY = 2.0;
+
     private final LoanDAO loanDAO;
     private final BookDAO bookDAO;
     private final MemberDAO memberDAO;
-    private final FineService fineService;
     private final FineDAO fineDAO;
 
     public LoanService() {
         this.loanDAO = new LoanDAO();
         this.bookDAO = new BookDAO();
         this.memberDAO = new MemberDAO();
-        this.fineService = new FineService();
         this.fineDAO = new FineDAO();
     }
 
-    public boolean borrowBook(int memberId, int bookId) {
+    public LoanDTO borrowBook(int memberId, int bookId) {
         if (memberId <= 0 || bookId <= 0) {
-            System.out.println("Member ID and book ID must be greater than 0.");
-            return false;
+            throw new ValidationException("El ID del socio y el del libro deben ser mayores que 0.");
         }
 
         Member member = memberDAO.getMemberById(memberId);
-        Book book = bookDAO.getBookById(bookId);
-
         if (member == null) {
-            System.out.println("Member not found.");
-            return false;
+            throw new NotFoundException("Socio no encontrado.");
         }
 
+        Book book = bookDAO.getBookById(bookId);
         if (book == null) {
-            System.out.println("Book not found.");
-            return false;
+            throw new NotFoundException("Libro no encontrado.");
         }
 
-        if (!member.getStatus().equalsIgnoreCase("ACTIVE")) {
-            System.out.println("Member is not active.");
-            return false;
+        if (!member.getStatus().equalsIgnoreCase("active")) {
+            throw new ConflictException("El socio no está activo.");
         }
 
         if (book.getAvailableCopies() <= 0) {
-            System.out.println("No available copies.");
-            return false;
+            throw new ConflictException("No quedan ejemplares disponibles.");
         }
 
         if (loanDAO.hasActiveLoanForBookAndMember(bookId, memberId)) {
-            System.out.println("This member already has an active loan for this book.");
-            return false;
+            throw new ConflictException("Este socio ya tiene un préstamo activo de este libro.");
         }
 
         LocalDate loanDate = LocalDate.now();
-        LocalDate dueDate = loanDate.plusDays(14);
+        LocalDate dueDate = loanDate.plusDays(LOAN_PERIOD_DAYS);
 
         try (Connection conn = DatabaseConnection.getConnection()) {
             conn.setAutoCommit(false);
 
-            boolean loanCreated = loanDAO.createLoan(conn, bookId, memberId, loanDate, dueDate);
-            boolean stockUpdated = loanCreated && bookDAO.decreaseAvailableCopies(conn, bookId);
+            try {
+                int loanId = loanDAO.createLoan(conn, bookId, memberId, loanDate, dueDate);
 
-            if (loanCreated && stockUpdated) {
+                // The UPDATE only succeeds while copies remain, which guards against two simultaneous loans
+                if (!bookDAO.decreaseAvailableCopies(conn, bookId)) {
+                    throw new ConflictException("No quedan ejemplares disponibles.");
+                }
+
                 conn.commit();
-                return true;
+                return getLoan(loanId);
+            } catch (RuntimeException e) {
+                conn.rollback();
+                throw e;
             }
-
-            conn.rollback();
-            System.out.println("Could not create the loan.");
-            return false;
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Could not create the loan.");
-            return false;
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not create the loan", e);
         }
     }
 
-    public boolean returnBook(int loanId) {
-        if (loanId <= 0) {
-            System.out.println("Loan ID must be greater than 0.");
-            return false;
+    public LoanDTO getLoan(int loanId) {
+        validateLoanId(loanId);
+
+        LoanDTO loan = loanDAO.getLoanDetailsById(loanId);
+        if (loan == null) {
+            throw new NotFoundException("Préstamo no encontrado.");
         }
 
-        Loan loan = loanDAO.getActiveLoanById(loanId);
+        return loan;
+    }
 
+    public LoanReturnDTO returnBook(int loanId) {
+        validateLoanId(loanId);
+
+        Loan loan = loanDAO.getActiveLoanById(loanId);
         if (loan == null) {
-            System.out.println("Active loan not found.");
-            return false;
+            throw new NotFoundException("No se ha encontrado un préstamo activo.");
+        }
+
+        return processReturn(loan);
+    }
+
+    public LoanReturnDTO returnBookByMemberAndBook(int memberId, int bookId) {
+        if (memberId <= 0 || bookId <= 0) {
+            throw new ValidationException("El ID del socio y el del libro deben ser mayores que 0.");
+        }
+
+        Loan loan = loanDAO.getActiveLoanByBookAndMember(bookId, memberId);
+        if (loan == null) {
+            throw new NotFoundException("Este socio no tiene un préstamo activo de este libro.");
         }
 
         return processReturn(loan);
     }
 
     public List<LoanDTO> getActiveLoans() {
-        return loanDAO.getActiveLoans().stream()
-                .map(LoanMapper::toDTO)
-                .toList();
+        return loanDAO.getActiveLoans();
     }
 
     public List<LoanDTO> getLoansByMemberId(int memberId) {
-        return loanDAO.getLoansByMemberId(memberId).stream()
-                .map(LoanMapper::toDTO)
-                .toList();
+        if (memberId <= 0) {
+            throw new ValidationException("ID de socio no válido.");
+        }
+
+        if (memberDAO.getMemberById(memberId) == null) {
+            throw new NotFoundException("Socio no encontrado.");
+        }
+
+        return loanDAO.getLoansByMemberId(memberId);
     }
 
     public List<LoanDTO> getOverdueLoans() {
-        return loanDAO.getOverdueLoans().stream()
-                .map(LoanMapper::toDTO)
-                .toList();
+        return loanDAO.getOverdueLoans();
     }
 
     public List<OverdueLoanDTO> getOverdueLoanRegister() {
         return loanDAO.getOverdueLoanRegister();
     }
 
-    public boolean extendLoan(int loanId, int extraDays) {
+    public LoanDTO extendLoan(int loanId, int extraDays) {
         if (loanId <= 0 || extraDays <= 0) {
-            System.out.println("Loan ID and extra days must be greater than 0.");
-            return false;
+            throw new ValidationException("El ID del préstamo y los días extra deben ser mayores que 0.");
         }
 
         Loan loan = loanDAO.getActiveLoanById(loanId);
         if (loan == null) {
-            System.out.println("Active loan not found.");
-            return false;
+            throw new NotFoundException("No se ha encontrado un préstamo activo.");
         }
 
         if (loan.getDueDate().isBefore(LocalDate.now())) {
-            System.out.println("Cannot extend an overdue loan.");
-            return false;
+            throw new ConflictException("No se puede prorrogar un préstamo vencido.");
         }
 
         LocalDate newDueDate = loan.getDueDate().plusDays(extraDays);
-        return loanDAO.extendLoan(loanId, newDueDate);
+        loanDAO.extendLoan(loanId, newDueDate);
+        return getLoan(loanId);
     }
 
-    public boolean returnBookByMemberAndBook(int memberId, int bookId) {
-        if (memberId <= 0 || bookId <= 0) {
-            System.out.println("Member ID and book ID must be greater than 0.");
-            return false;
-        }
-
-        Loan loan = loanDAO.getActiveLoanByBookAndMember(bookId, memberId);
-
-        if (loan == null) {
-            System.out.println("Active loan not found for this member and book.");
-            return false;
-        }
-
-        return processReturn(loan);
-    }
-
-    private boolean processReturn(Loan loan) {
+    private LoanReturnDTO processReturn(Loan loan) {
         LocalDate today = LocalDate.now();
+        double fineAmount = 0;
 
         try (Connection conn = DatabaseConnection.getConnection()) {
             conn.setAutoCommit(false);
 
-            boolean loanReturned = loanDAO.returnLoan(conn, loan.getId(), today);
-            boolean stockUpdated = loanReturned && bookDAO.increaseAvailableCopies(conn, loan.getBookId());
-
-            if (!loanReturned || !stockUpdated) {
-                conn.rollback();
-                System.out.println("Could not complete the return.");
-                return false;
-            }
-
-            if (today.isAfter(loan.getDueDate()) && !fineDAO.hasFineForLoan(conn, loan.getId())) {
-                long lateDays = ChronoUnit.DAYS.between(loan.getDueDate(), today);
-                double fineAmount = lateDays * 2.0;
-                boolean fineCreated = fineDAO.createFine(conn, loan.getId(), fineAmount);
-
-                if (!fineCreated) {
-                    conn.rollback();
-                    System.out.println("Could not create the fine.");
-                    return false;
+            try {
+                if (!loanDAO.returnLoan(conn, loan.getId(), today)) {
+                    throw new ConflictException("El préstamo ya se ha devuelto.");
                 }
-            }
 
-            conn.commit();
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Could not complete the return.");
-            return false;
+                bookDAO.increaseAvailableCopies(conn, loan.getBookId());
+
+                if (today.isAfter(loan.getDueDate()) && !fineDAO.hasFineForLoan(conn, loan.getId())) {
+                    long lateDays = ChronoUnit.DAYS.between(loan.getDueDate(), today);
+                    fineAmount = lateDays * FINE_PER_LATE_DAY;
+                    fineDAO.createFine(conn, loan.getId(), fineAmount);
+                }
+
+                conn.commit();
+            } catch (RuntimeException e) {
+                conn.rollback();
+                throw e;
+            }
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not complete the return", e);
+        }
+
+        return new LoanReturnDTO(getLoan(loan.getId()), fineAmount);
+    }
+
+    private void validateLoanId(int loanId) {
+        if (loanId <= 0) {
+            throw new ValidationException("El ID del préstamo debe ser mayor que 0.");
         }
     }
 }

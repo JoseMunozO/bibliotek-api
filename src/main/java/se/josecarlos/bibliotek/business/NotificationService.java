@@ -5,7 +5,6 @@ import se.josecarlos.bibliotek.data.MemberDAO;
 import se.josecarlos.bibliotek.data.NotificationDAO;
 import se.josecarlos.bibliotek.dto.NotificationDTO;
 import se.josecarlos.bibliotek.model.Loan;
-import se.josecarlos.bibliotek.model.Member;
 
 import java.util.List;
 
@@ -21,47 +20,57 @@ public class NotificationService {
         this.loanDAO = new LoanDAO();
     }
 
-    public boolean sendNotification(int memberId, Integer loanId, String type, String message) {
-        String normalizedType = type == null ? "" : type.trim().toUpperCase();
+    public NotificationDTO sendNotification(int memberId, Integer loanId, String type, String message) {
+        // Types are stored in snake_case like the seed data, e.g. "Pending fine" -> "pending_fine"
+        String normalizedType = type == null ? "" : type.trim().toLowerCase().replaceAll("\\s+", "_");
         String normalizedMessage = message == null ? "" : message.trim();
 
-        if (memberId <= 0) {
-            System.out.println("Member ID must be greater than 0.");
-            return false;
-        }
-
-        Member member = memberDAO.getMemberById(memberId);
-        if (member == null) {
-            System.out.println("Member not found.");
-            return false;
-        }
+        validateMemberExists(memberId);
 
         if (normalizedType.isEmpty() || normalizedMessage.isEmpty()) {
-            System.out.println("Type and message are required.");
-            return false;
+            throw new ValidationException("El tipo y el mensaje son obligatorios.");
         }
 
         if (loanId != null) {
             Loan loan = loanDAO.getLoanById(loanId);
             if (loan == null) {
-                System.out.println("Loan not found.");
-                return false;
+                throw new NotFoundException("Préstamo no encontrado.");
             }
 
             if (loan.getMemberId() != memberId) {
-                System.out.println("That loan does not belong to the selected member.");
-                return false;
+                throw new ValidationException("Ese préstamo no pertenece al socio seleccionado.");
             }
         }
 
-        return notificationDAO.createNotification(memberId, loanId, normalizedType, normalizedMessage);
+        int notificationId = notificationDAO.createNotification(memberId, loanId, normalizedType, normalizedMessage);
+        return notificationDAO.getNotificationById(notificationId);
     }
 
     public List<NotificationDTO> getNotificationsByMemberId(int memberId) {
-        if (memberId <= 0) {
-            return List.of();
+        validateMemberExists(memberId);
+        return notificationDAO.getNotificationsByMemberId(memberId);
+    }
+
+    public NotificationDTO markAsRead(int notificationId) {
+        if (notificationId <= 0) {
+            throw new ValidationException("ID de notificación no válido.");
         }
 
-        return notificationDAO.getNotificationsByMemberId(memberId);
+        if (notificationDAO.getNotificationById(notificationId) == null) {
+            throw new NotFoundException("Notificación no encontrada.");
+        }
+
+        notificationDAO.markAsRead(notificationId);
+        return notificationDAO.getNotificationById(notificationId);
+    }
+
+    private void validateMemberExists(int memberId) {
+        if (memberId <= 0) {
+            throw new ValidationException("El ID del socio debe ser mayor que 0.");
+        }
+
+        if (memberDAO.getMemberById(memberId) == null) {
+            throw new NotFoundException("Socio no encontrado.");
+        }
     }
 }

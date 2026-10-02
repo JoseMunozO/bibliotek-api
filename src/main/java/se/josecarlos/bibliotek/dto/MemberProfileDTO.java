@@ -5,6 +5,8 @@ import java.time.LocalDate;
 public class MemberProfileDTO {
 
     private final int id;
+    private final String firstName;
+    private final String lastName;
     private final String fullName;
     private final String email;
     private final LocalDate membershipDate;
@@ -15,10 +17,12 @@ public class MemberProfileDTO {
     private final int totalFinesCount;
     private final double unpaidFineAmount;
 
-    public MemberProfileDTO(int id, String fullName, String email, LocalDate membershipDate, String membershipType,
+    public MemberProfileDTO(int id, String firstName, String lastName, String fullName, String email, LocalDate membershipDate, String membershipType,
                             String status, int activeLoansCount, int totalLoansCount, int totalFinesCount,
                             double unpaidFineAmount) {
         this.id = id;
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.fullName = fullName;
         this.email = email;
         this.membershipDate = membershipDate;
@@ -32,6 +36,14 @@ public class MemberProfileDTO {
 
     public int getId() {
         return id;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
     }
 
     public String getFullName() {

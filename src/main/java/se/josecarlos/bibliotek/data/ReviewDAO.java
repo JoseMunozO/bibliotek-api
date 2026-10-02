@@ -7,45 +7,33 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ReviewDAO {
 
+    private static final String REVIEW_SELECT = """
+            SELECT
+                r.id,
+                r.book_id,
+                r.member_id,
+                CONCAT(COALESCE(m.first_name, ''), ' ', COALESCE(m.last_name, '')) AS member_name,
+                r.rating,
+                r.comment,
+                r.review_date
+            FROM reviews r
+            LEFT JOIN members m ON m.id = r.member_id
+            """;
+
     public List<ReviewDTO> getReviewsByBookId(int bookId) {
-        List<ReviewDTO> reviews = new ArrayList<>();
-        String sql = """
-                SELECT
-                    r.id,
-                    r.book_id,
-                    r.member_id,
-                    CONCAT(COALESCE(m.first_name, ''), ' ', COALESCE(m.last_name, '')) AS member_name,
-                    r.rating,
-                    r.comment,
-                    r.review_date
-                FROM reviews r
-                LEFT JOIN members m ON m.id = r.member_id
-                WHERE r.book_id = ?
-                ORDER BY r.review_date DESC, r.id DESC
-                """;
+        return queryReviews(REVIEW_SELECT + " WHERE r.book_id = ? ORDER BY r.review_date DESC, r.id DESC", bookId);
+    }
 
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, bookId);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    reviews.add(mapRow(rs));
-                }
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return reviews;
+    public ReviewDTO getReviewById(int reviewId) {
+        List<ReviewDTO> reviews = queryReviews(REVIEW_SELECT + " WHERE r.id = ?", reviewId);
+        return reviews.isEmpty() ? null : reviews.getFirst();
     }
 
     public boolean hasMemberReviewedBook(int memberId, int bookId) {
@@ -62,33 +50,55 @@ public class ReviewDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseException("Could not check reviews", e);
         }
-
-        return false;
     }
 
-    public boolean createReview(int bookId, int memberId, int rating, String comment) {
+    public int createReview(int bookId, int memberId, int rating, String comment) {
         String sql = """
                 INSERT INTO reviews (book_id, member_id, rating, comment, review_date)
                 VALUES (?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setInt(1, bookId);
             stmt.setInt(2, memberId);
             stmt.setInt(3, rating);
             stmt.setString(4, comment);
             stmt.setDate(5, Date.valueOf(LocalDate.now()));
+            stmt.executeUpdate();
 
-            return stmt.executeUpdate() > 0;
+            try (ResultSet keys = stmt.getGeneratedKeys()) {
+                keys.next();
+                return keys.getInt(1);
+            }
+
         } catch (SQLException e) {
-            System.out.println("Could not create review: " + e.getMessage());
+            throw new DatabaseException("Could not create review", e);
+        }
+    }
+
+    private List<ReviewDTO> queryReviews(String sql, int param) {
+        List<ReviewDTO> reviews = new ArrayList<>();
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, param);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    reviews.add(mapRow(rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch reviews", e);
         }
 
-        return false;
+        return reviews;
     }
 
     private ReviewDTO mapRow(ResultSet rs) throws SQLException {

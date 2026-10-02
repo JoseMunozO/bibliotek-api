@@ -10,6 +10,8 @@ public class MemberMapper {
 
         return new MemberDTO(
                 member.getId(),
+                member.getFirstName(),
+                member.getLastName(),
                 fullName,
                 member.getEmail(),
                 member.getMembershipType(),

@@ -42,7 +42,7 @@ public class BookDAO {
                 ));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseException("Could not fetch books", e);
         }
 
         return books;
@@ -60,8 +60,8 @@ public class BookDAO {
                 books.add(mapRowToBook(rs));
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch books", e);
         }
 
         return books;
@@ -81,8 +81,8 @@ public class BookDAO {
                 }
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch book " + id, e);
         }
 
         return null;
@@ -103,8 +103,8 @@ public class BookDAO {
                 }
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch books", e);
         }
 
         return books;
@@ -160,8 +160,8 @@ public class BookDAO {
                     );
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not fetch books", e);
         }
 
         return null;
@@ -196,13 +196,13 @@ public class BookDAO {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseException("Could not fetch books", e);
         }
 
         return statistics;
     }
 
-    private Book mapRowToBook(ResultSet rs) throws Exception {
+    private Book mapRowToBook(ResultSet rs) throws SQLException {
         return new Book(
                 rs.getInt("id"),
                 rs.getString("title"),
@@ -211,14 +211,6 @@ public class BookDAO {
                 rs.getInt("total_copies"),
                 rs.getInt("available_copies")
         );
-    }
-
-    public void decreaseAvailableCopies(int bookId) {
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            decreaseAvailableCopies(conn, bookId);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     public boolean decreaseAvailableCopies(Connection conn, int bookId) {
@@ -233,18 +225,8 @@ public class BookDAO {
             stmt.setInt(1, bookId);
             return stmt.executeUpdate() > 0;
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return false;
-    }
-
-    public void increaseAvailableCopies(int bookId) {
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            increaseAvailableCopies(conn, bookId);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not decrease available copies for book " + bookId, e);
         }
     }
 
@@ -260,10 +242,8 @@ public class BookDAO {
             stmt.setInt(1, bookId);
             return stmt.executeUpdate() > 0;
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not increase available copies for book " + bookId, e);
         }
-
-        return false;
     }
 }

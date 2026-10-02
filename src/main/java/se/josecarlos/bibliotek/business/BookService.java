@@ -58,10 +58,15 @@ public class BookService {
 
     public BookDetailsDTO getBookDetails(int id) {
         if (id <= 0) {
-            return null;
+            throw new ValidationException("ID de libro no válido.");
         }
 
-        return bookDAO.getBookDetails(id);
+        BookDetailsDTO details = bookDAO.getBookDetails(id);
+        if (details == null) {
+            throw new NotFoundException("Libro no encontrado.");
+        }
+
+        return details;
     }
 
     public List<BookStatisticsDTO> getMostBorrowedBooks(int limit) {
