@@ -89,6 +89,50 @@ med statuskod 400 (ogiltig data), 404 (finns inte), 409 (konflikt, t.ex. e-post 
 ./mvnw -q compile exec:java -Dexec.mainClass=se.josecarlos.bibliotek.Main
 ```
 
+### Docker
+
+```bash
+docker build -t bibliotek-api .
+docker run -p 8090:8090 --env-file .env bibliotek-api
+```
+
+Om MySQL körs lokalt, använd `host.docker.internal` i stället för `localhost` i `DB_URL`.
+
+## Driftsättning (Railway)
+
+API:t byggs med `Dockerfile` (Java 25) och lyssnar på porten i `PORT`, som Railway sätter automatiskt.
+
+1. **New Project → Deploy from GitHub repo** → välj `bibliotek-api`. Railway hittar `Dockerfile` själv.
+2. **+ New → Database → MySQL** i samma projekt (tjänsten heter `MySQL`).
+3. Under API-tjänstens **Variables**:
+
+   | Variabel | Värde |
+   |----------|-------|
+   | `DB_URL` | `jdbc:mysql://${{MySQL.MYSQLHOST}}:${{MySQL.MYSQLPORT}}/${{MySQL.MYSQLDATABASE}}?allowPublicKeyRetrieval=true` |
+   | `DB_USER` | `${{MySQL.MYSQLUSER}}` |
+   | `DB_PASSWORD` | `${{MySQL.MYSQLPASSWORD}}` |
+   | `CORS_ALLOWED_ORIGINS` | `https://<din-app>.vercel.app,https://bibliotek-react-ts*.vercel.app` |
+   | `DEMO_INIT_IF_EMPTY` | `true` |
+   | `DEMO_RESET_CRON` | `0 0 4 * * *` |
+   | `DEMO_RESET_ZONE` | *(valfri, standard `Europe/Stockholm`)* |
+
+   `${{MySQL.…}}` är Railways referensvariabler och fylls i automatiskt via det privata nätverket.
+4. **Settings → Networking → Generate Domain**. API:t finns då på `https://<namn>.up.railway.app/api`
+   (testa med `/api/books`). Frontendens `VITE_API_URL` ska vara exakt den adressen.
+
+### Exempeldata och återställning
+
+API:t saknar inloggning, så i en publik demo kan vem som helst ändra data. Därför:
+
+- `DEMO_INIT_IF_EMPTY=true` laddar `bibliotek.sql` automatiskt vid start om databasen saknar tabeller
+  (ingen manuell import behövs första gången).
+- `DEMO_RESET_CRON` raderar alla tabeller och laddar `bibliotek.sql` på nytt enligt schemat
+  (Spring-cron med 6 fält: sekund minut timme dag månad veckodag; `0 0 4 * * *` = varje natt kl. 04:00).
+- Utan dessa variabler gör API:t ingenting med databasen – lokalt påverkas din data aldrig.
+
+`CREATE DATABASE`/`USE` i skriptet hoppas över, så återställningen fungerar med vilket databasnamn som helst
+(Railways heter `railway`).
+
 ## Nuvarande funktionalitet
 
 - bokkatalog

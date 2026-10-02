@@ -13,8 +13,9 @@ public class CorsConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
+        // Patterns allow wildcards such as https://bibliotek-react-ts*.vercel.app (Vercel previews)
         registry.addMapping("/api/**")
-                .allowedOrigins(allowedOrigins)
+                .allowedOriginPatterns(allowedOrigins)
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE");
     }
 }
